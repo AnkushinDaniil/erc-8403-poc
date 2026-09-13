@@ -1,0 +1,191 @@
+ERC-8403 POC — full scenario report
+generated: Sun Sep 13 09:33:23 AM UTC 2026 UTC
+
+########## CORE SUITE (erc8403_poc.py) ##########
+================================================================
+ERC-8403 POC  ·  scenario suite (positive + RED control each)
+================================================================
+[PASS] S1 home act (Tier 2): valid witness authorizes
+        positive: accepts valid
+        RED (wrong witness): rejected as expected
+[PASS] S2 membership+witness independence
+        positive: accepts valid
+        RED (valid witness but broken proof): rejected as expected
+[PASS] S3 Tier1 latency window is real; Tier2 own-slot is instant
+        positive: accepts valid
+        RED (same revoke under Tier 2): rejected as expected
+[PASS] S4 isolation (A's proof does not verify under B's root)
+        positive: accepts valid
+        RED (A leaf vs B root): rejected as expected
+[PASS] S5 rotate binds new key to same slot
+        positive: accepts valid
+        RED (old predicate under new root): rejected as expected
+[PASS] S6 recovery rebuilds the exact root from on-chain leaves
+        positive: accepts valid
+        RED (one leaf missing): rejected as expected
+[PASS] S7 multichain: storage-proof pins the home root
+        positive: accepts valid
+        RED (forged home root): rejected as expected
+[PASS] S8 witness binds to the full call set
+        positive: accepts valid
+        RED (replay to different calls): rejected as expected
+[PASS] S9 self-kill by possession removes the authority
+        positive: accepts valid
+        RED (thief without the key): rejected as expected
+[PASS] S10 ACT/AMEND class split
+        positive: accepts valid
+        RED (ACT tries to change the set): rejected as expected
+[PASS] S11 fail-closed for an unknown authority
+        positive: accepts valid
+        RED (authority never in the set): rejected as expected
+
+================================================================
+MEASUREMENTS  (measured = counted this run; analytic = cost model on counts)
+================================================================
+
+Authority-set size vs proof size and root-recompute cost:
+     N  proof_bytes  nondef_sibs  root_hashes  verify_hashes
+     1           64            1          123             65
+     4           96            2          237             65
+    16          192            5          965             65
+    64          192            5         3726             65
+   256          288            8        14351             65
+
+Per-tier authorization cost at N=256 (analytic gas on measured op counts):
+  Tier 1: sloads=0 ecrecover=1 keccak=65  analytic_gas~5730  (MAX_VERIFY_GAS=100000)
+  Tier 2: sloads=1 ecrecover=1 keccak=65  analytic_gas~7830  (MAX_VERIFY_GAS=100000)
+
+Verifier cost classes (analytic, ordered by mutable state read):
+  CANONICAL  mutable_reads=0    table-priced, no execution
+  CIRCUIT    mutable_reads=0    succinct: proof+witness collapse into one proof
+  BOUNDED    mutable_reads=1    one fixed account-owned slot
+  CONTRACT   mutable_reads=arb  simulate under verify-gas cap, else private inclusion
+
+================================================================
+SCENARIO RESULT: 11/11 passed (positive + RED control both hold)
+================================================================
+  ok  S1 home act (Tier 2): valid witness authorizes
+  ok  S2 membership+witness independence
+  ok  S3 Tier1 latency window is real; Tier2 own-slot is instant
+  ok  S4 isolation (A's proof does not verify under B's root)
+  ok  S5 rotate binds new key to same slot
+  ok  S6 recovery rebuilds the exact root from on-chain leaves
+  ok  S7 multichain: storage-proof pins the home root
+  ok  S8 witness binds to the full call set
+  ok  S9 self-kill by possession removes the authority
+  ok  S10 ACT/AMEND class split
+  ok  S11 fail-closed for an unknown authority
+
+########## EXTENDED SUITE (erc8403_poc_ext.py) ##########
+================================================================
+ERC-8403 POC  ·  EXTENDED suite (edge cases, lifecycle, stolen key, walls)
+================================================================
+[PASS] E1 ADD is monotone (old proofs survive; new leaf absent from old root)
+        positive: accepts valid
+        RED (new leaf under old root): rejected as expected
+[PASS] E2 rotation retire-half: T1 latency vs T2 instant
+        positive: accepts valid
+        RED (retired key under Tier 2): rejected as expected
+[PASS] E3 set_version ordering (carried op replay rejected)
+        positive: accepts valid
+        RED (replay at stale set_version): rejected as expected
+[PASS] E4 any-sender delivery heals a drained account (AMEND sig, not sender, decides)
+        positive: accepts valid
+        RED (forged AMEND sig): rejected as expected
+[PASS] E5 genesis AMEND can amend; ACT-only genesis cannot
+        positive: accepts valid
+        RED (ACT tries to change the set): rejected as expected
+[PASS] E6 emergency rotation: Tier 2 stops the stolen key next block
+        positive: accepts valid
+        RED (same stolen key blocked at T2): rejected as expected
+[WALL] E6-wall stolen key on Tier 1 within recency window
+        demonstrated: thief authorized under stale root at T1 = True
+        spec L201/L203: emergency revocation MUST use Tier 2; T1 latency is the recency window, named not claimed away.
+[PASS] E7 self-kill needs the authority's own key
+        positive: accepts valid
+        RED (stranger without the key): rejected as expected
+[WALL] E7-wall denial by self-kill (owner/thief symmetry)
+        demonstrated: a thief holding the stolen key can self-kill the record = True
+        bounded by 'could have drained instead'; the mitigation is a mandatory second authority, not a validation rule.
+[PASS] E8 prev_key kill survives a thief-first ratchet advance
+        positive: accepts valid
+        RED (non-prev key on the kill path): rejected as expected
+[WALL] E9-wall drain-vs-revoke ordering under PBS
+        demonstrated: drain lands iff builder orders it first: drain_first=True, revoke_first=False
+        spec L201 + honest verdict: no validation/fee rule makes revoke win the slot; claim is 'builder-neutral adversary'.
+[PASS] E10 recovery works with a surviving authority; none => locked out
+        positive: accepts valid
+        RED (no surviving key): rejected as expected
+[PASS] E11 on-chain leaves rebuild the root; a wrong guess does not
+        positive: accepts valid
+        RED (incomplete leaf set): rejected as expected
+[WALL] E11-wall off-chain leaves with a lost wallet cache
+        demonstrated: root stays valid but the leaf set cannot be reconstructed from chain data
+        spec L188/L210: publishing only the root is a MAY; the account then owns leaf availability. Trade-off, not a hole.
+[PASS] E12 recovery authority pre-committed; thief cannot self-inject
+        positive: accepts valid
+        RED (non-AMEND injects a recovery key): rejected as expected
+[PASS] E13 fold is canonical (insertion order irrelevant)
+        positive: accepts valid
+        RED (one predicate changed): rejected as expected
+[PASS] E14 boundaries: empty/single-leaf valid; duplicate id overwrites
+        positive: accepts valid
+        RED (duplicate id makes 2 leaves): rejected as expected
+[PASS] E15 expiry predicate accepts before, rejects after
+        positive: accepts valid
+        RED (past the unlock time): rejected as expected
+[PASS] E16 threshold k-of-n: k accepts, k-1 rejects
+        positive: accepts valid
+        RED (one signature short): rejected as expected
+[PASS] E17 delegation depth-1 over export; depth-2 chain rejected
+        positive: accepts valid
+        RED (two-hop delegation): rejected as expected
+[PASS] E18 BOUNDED verifier rejects a read outside its declared slot
+        positive: accepts valid
+        RED (read outside the pattern): rejected as expected
+[PASS] E19 CIRCUIT collapses proof+witness, reads 0 mutable state
+        positive: accepts valid
+        RED (tampered circuit proof): rejected as expected
+[PASS] E20 witness is chain-domain bound (no cross-chain replay)
+        positive: accepts valid
+        RED (replay under another chain_id): rejected as expected
+[PASS] E21 multichain accepts a finalized home root, rejects unfinalized
+        positive: accepts valid
+        RED (unfinalized/reorgable root): rejected as expected
+[PASS] E22 carried capability bound to consumer (no cross-account replay)
+        positive: accepts valid
+        RED (capability reused by another account): rejected as expected
+[PASS] E23 T1 fails closed when source stops; T2 slot read is unaffected
+        positive: accepts valid
+        RED (aged-out T1 root): rejected as expected
+
+================================================================
+EXTENDED SCENARIO RESULT: 22/22 functional cases passed (positive + RED both hold)
+WALLS demonstrated (known limits, NOT holes): 4
+================================================================
+  ok  E1 ADD is monotone (old proofs survive; new leaf absent from old root)
+  ok  E2 rotation retire-half: T1 latency vs T2 instant
+  ok  E3 set_version ordering (carried op replay rejected)
+  ok  E4 any-sender delivery heals a drained account (AMEND sig, not sender, decides)
+  ok  E5 genesis AMEND can amend; ACT-only genesis cannot
+  ok  E6 emergency rotation: Tier 2 stops the stolen key next block
+  ok  E7 self-kill needs the authority's own key
+  ok  E8 prev_key kill survives a thief-first ratchet advance
+  ok  E10 recovery works with a surviving authority; none => locked out
+  ok  E11 on-chain leaves rebuild the root; a wrong guess does not
+  ok  E12 recovery authority pre-committed; thief cannot self-inject
+  ok  E13 fold is canonical (insertion order irrelevant)
+  ok  E14 boundaries: empty/single-leaf valid; duplicate id overwrites
+  ok  E15 expiry predicate accepts before, rejects after
+  ok  E16 threshold k-of-n: k accepts, k-1 rejects
+  ok  E17 delegation depth-1 over export; depth-2 chain rejected
+  ok  E18 BOUNDED verifier rejects a read outside its declared slot
+  ok  E19 CIRCUIT collapses proof+witness, reads 0 mutable state
+  ok  E20 witness is chain-domain bound (no cross-chain replay)
+  ok  E21 multichain accepts a finalized home root, rejects unfinalized
+  ok  E22 carried capability bound to consumer (no cross-account replay)
+  ok  E23 T1 fails closed when source stops; T2 slot read is unaffected
+  wall E6-wall stolen key on Tier 1 within recency window
+  wall E7-wall denial by self-kill (owner/thief symmetry)
+  wall E9-wall drain-vs-revoke ordering under PBS
+  wall E11-wall off-chain leaves with a lost wallet cache

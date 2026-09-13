@@ -1,0 +1,73 @@
+================================================================
+ERC-8403 POC  ·  scenario suite (positive + RED control each)
+================================================================
+[PASS] S1 home act (Tier 2): valid witness authorizes
+        positive: accepts valid
+        RED (wrong witness): rejected as expected
+[PASS] S2 membership+witness independence
+        positive: accepts valid
+        RED (valid witness but broken proof): rejected as expected
+[PASS] S3 Tier1 latency window is real; Tier2 own-slot is instant
+        positive: accepts valid
+        RED (same revoke under Tier 2): rejected as expected
+[PASS] S4 isolation (A's proof does not verify under B's root)
+        positive: accepts valid
+        RED (A leaf vs B root): rejected as expected
+[PASS] S5 rotate binds new key to same slot
+        positive: accepts valid
+        RED (old predicate under new root): rejected as expected
+[PASS] S6 recovery rebuilds the exact root from on-chain leaves
+        positive: accepts valid
+        RED (one leaf missing): rejected as expected
+[PASS] S7 multichain: storage-proof pins the home root
+        positive: accepts valid
+        RED (forged home root): rejected as expected
+[PASS] S8 witness binds to the full call set
+        positive: accepts valid
+        RED (replay to different calls): rejected as expected
+[PASS] S9 self-kill by possession removes the authority
+        positive: accepts valid
+        RED (thief without the key): rejected as expected
+[PASS] S10 ACT/AMEND class split
+        positive: accepts valid
+        RED (ACT tries to change the set): rejected as expected
+[PASS] S11 fail-closed for an unknown authority
+        positive: accepts valid
+        RED (authority never in the set): rejected as expected
+
+================================================================
+MEASUREMENTS  (measured = counted this run; analytic = cost model on counts)
+================================================================
+
+Authority-set size vs proof size and root-recompute cost:
+     N  proof_bytes  nondef_sibs  root_hashes  verify_hashes
+     1           64            1          123             65
+     4           96            2          237             65
+    16          192            5          965             65
+    64          192            5         3726             65
+   256          288            8        14351             65
+
+Per-tier authorization cost at N=256 (analytic gas on measured op counts):
+  Tier 1: sloads=0 ecrecover=1 keccak=65  analytic_gas~5730  (MAX_VERIFY_GAS=100000)
+  Tier 2: sloads=1 ecrecover=1 keccak=65  analytic_gas~7830  (MAX_VERIFY_GAS=100000)
+
+Verifier cost classes (analytic, ordered by mutable state read):
+  CANONICAL  mutable_reads=0    table-priced, no execution
+  CIRCUIT    mutable_reads=0    succinct: proof+witness collapse into one proof
+  BOUNDED    mutable_reads=1    one fixed account-owned slot
+  CONTRACT   mutable_reads=arb  simulate under verify-gas cap, else private inclusion
+
+================================================================
+SCENARIO RESULT: 11/11 passed (positive + RED control both hold)
+================================================================
+  ok  S1 home act (Tier 2): valid witness authorizes
+  ok  S2 membership+witness independence
+  ok  S3 Tier1 latency window is real; Tier2 own-slot is instant
+  ok  S4 isolation (A's proof does not verify under B's root)
+  ok  S5 rotate binds new key to same slot
+  ok  S6 recovery rebuilds the exact root from on-chain leaves
+  ok  S7 multichain: storage-proof pins the home root
+  ok  S8 witness binds to the full call set
+  ok  S9 self-kill by possession removes the authority
+  ok  S10 ACT/AMEND class split
+  ok  S11 fail-closed for an unknown authority
