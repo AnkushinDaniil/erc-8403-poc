@@ -1,7 +1,7 @@
-# ERC-8403 — reference POC, measurements & simulation
+# ERC-8403 reference POC: measurements and simulation
 
 Runnable reference implementations and test harnesses for **ERC-8403 Account Authority
-Lifecycle** — the model-neutral add / rotate / revoke lifecycle for native
+Lifecycle**, the model-neutral add / rotate / revoke lifecycle for native
 account-abstraction authorities, bound to EIP-8141 frame transactions and EIP-8130
 keystore accounts.
 
@@ -10,16 +10,16 @@ keystore accounts.
 
 Three layers, each with its own provenance label:
 
-**1. `poc/` — Python reference model.** Canonical key-addressed Merkle fold, the two
+**1. `poc/`: Python reference model.** Canonical key-addressed Merkle fold, the two
 authorization tiers, the lifecycle, recovery, isolation, multichain, and the verifier
 cost classes. 33 scenarios (11 core + 22 extended) plus 4 walls, each with a positive
 control and a RED control. `run-report-full.txt` is the captured run.
 
-**2. `evm/` — real-EVM verifier (Foundry / revm).** The ERC-8403 authorization step as a
+**2. `evm/`: real-EVM verifier (Foundry / revm).** The ERC-8403 authorization step as a
 Solidity contract with real `ecrecover` / `keccak`. 14 scenarios + 4 walls (`Walls.t.sol`).
 Gas measured. See `RUN-REPORT.md`, `WALLS-REPORT.md`.
 
-**3. `live/` — live frames-client.** The same check compiled to account bytecode (Yul +
+**3. `live/`: live frames-client.** The same check compiled to account bytecode (Yul +
 EIP-8141 frame opcodes) and executed inside a real `VERIFY` frame on Nethermind, driven by
 signed `0x06` frame-tx envelopes. Positive path + attack matrix. See `LASTMILE-REPORT.md`.
 
@@ -27,7 +27,7 @@ signed `0x06` frame-tx envelopes. Positive path + attack matrix. See `LASTMILE-R
 
 | item | value | provenance |
 |---|---|---|
-| `authorize()` (membership proof + ecrecover, the VERIFY-frame primitive) | 3,153–19,369 gas (avg 10,510) | measured (revm) |
+| `authorize()` (membership proof + ecrecover, the VERIFY-frame primitive) | 3,153-19,369 gas (avg 10,510) | measured (revm) |
 | `verifyMembership` | 1,712 gas | measured (revm) |
 | single-leaf VERIFY frame, live | 2,383 exec gas | measured (Nethermind) |
 | `MAX_VERIFY_GAS` | 100,000 nominal / ~300,000 admitted | spec draft / measured (Nethermind) |
@@ -36,13 +36,13 @@ signed `0x06` frame-tx envelopes. Positive path + attack matrix. See `LASTMILE-R
 
 ## The four walls (known limits, not holes)
 
-- **Drain-vs-revoke under PBS** — order-determined; no validation/fee mitigation. Revocation
+- **Drain-vs-revoke under PBS:** order-determined; no validation/fee mitigation. Revocation
   security is claimed only against a builder-neutral adversary.
-- **Denial by self-kill** — possession of the record's key is the only check; mitigated by a
+- **Denial by self-kill:** possession of the record's key is the only check; mitigated by a
   mandatory second authority, bounded by "could have drained instead".
-- **Tier-1 revocation latency** — bounded by the referencing mechanism's recency window;
+- **Tier-1 revocation latency:** bounded by the referencing mechanism's recency window;
   Tier-2 (own-slot read) revokes next-block.
-- **Off-chain leaves + lost cache** — a hiding commitment cannot reconstruct its leaves; keep
+- **Off-chain leaves + lost cache:** a hiding commitment cannot reconstruct its leaves; keep
   the tree enumerable on-chain so recovery is a re-read.
 
 Each is demonstrated with its mitigation in `poc/` (analytic) and `evm/test/Walls.t.sol`
