@@ -23,6 +23,17 @@ Gas measured. See `RUN-REPORT.md`, `WALLS-REPORT.md`.
 EIP-8141 frame opcodes) and executed inside a real `VERIFY` frame on Nethermind, driven by
 signed `0x06` frame-tx envelopes. Positive path + attack matrix. See `LASTMILE-REPORT.md`.
 
+## Results (measured)
+
+| item | value | provenance |
+|---|---|---|
+| `authorize()` (membership proof + ecrecover, the VERIFY-frame primitive) | 3,153–19,369 gas (avg 10,510) | measured (revm) |
+| `verifyMembership` | 1,712 gas | measured (revm) |
+| single-leaf VERIFY frame, live | 2,383 exec gas | measured (Nethermind) |
+| `MAX_VERIFY_GAS` | 100,000 nominal / ~300,000 admitted | spec draft / measured (Nethermind) |
+| scenarios | 33 python + 18 foundry + 13 live, each with a RED control | reproduced |
+| walls | 4/4 demonstrated with their mitigation | reproduced |
+
 ## The four walls (known limits, not holes)
 
 - **Drain-vs-revoke under PBS** — order-determined; no validation/fee mitigation. Revocation
@@ -53,7 +64,16 @@ Each is demonstrated with its mitigation in `poc/` (analytic) and `evm/test/Wall
 
 ## Run
 
-- Python: `python3 poc/erc8403_poc.py && python3 poc/erc8403_poc_ext.py`
-- Foundry: `cd evm && forge test -vv`
+One command runs both reproducible layers (bootstraps a venv and forge-std on first run):
+
+```
+./run_all.sh
+```
+
+Or run them directly:
+- Python: `pip install -r poc/requirements.txt` then `python3 poc/erc8403_poc.py && python3 poc/erc8403_poc_ext.py`
+- Foundry: `cd evm && forge test -vv` (needs `forge-std` in `evm/lib/`)
+
+Layer 3 (`live/`) needs a running EIP-8141 frames client and is not run by `run_all.sh`.
 
 Design-stage research artifact. Not audited; not for production.
