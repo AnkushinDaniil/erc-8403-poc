@@ -10,7 +10,7 @@ mapping is illustrative.
 - Spec (draft): https://github.com/ethereum/ERCs/pull/1979
 - Discussion: https://ethereum-magicians.org/t/erc-8403-account-authority-lifecycle/29570
 
-Three layers, each with its own provenance label:
+Four layers, each with its own provenance label:
 
 **1. `poc/`: Python reference model.** Canonical key-addressed Merkle fold, the two
 authorization tiers, the lifecycle, recovery, isolation, multichain, and the verifier
@@ -24,6 +24,11 @@ Gas measured. See `RUN-REPORT.md`, `WALLS-REPORT.md`.
 **3. `live/`: live frames-client.** The same check compiled to account bytecode (Yul +
 EIP-8141 frame opcodes) and executed inside a real `VERIFY` frame on Nethermind, driven by
 signed `0x06` frame-tx envelopes. Positive path + attack matrix. See `LASTMILE-REPORT.md`.
+
+**4. `evm-8130/`: live EIP-8130 Keystore.** The ERC-8403 Read form run against the real
+base/eip-8130 Keystore (`authenticateActor`), unmodified, at a pinned commit. 3 tests, 256
+fuzz runs each: valid witness authorizes, account-keyed isolation, instant revocation. See
+`LIVE-8130-REPORT.md`; reproduce with `evm-8130/run_8130_live.sh`.
 
 ## Results (measured)
 

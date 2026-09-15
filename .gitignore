@@ -6,3 +6,4 @@ evm/lib/
 evm/out/
 evm/cache/
 *.log
+evm-8130/base/
