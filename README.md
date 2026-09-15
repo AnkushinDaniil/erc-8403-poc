@@ -2,8 +2,10 @@
 
 Runnable reference implementations and test harnesses for **ERC-8403 Account Authority
 Lifecycle**, the model-neutral add / rotate / revoke lifecycle for native
-account-abstraction authorities, bound to EIP-8141 frame transactions and EIP-8130
-keystore accounts.
+account-abstraction authorities. EIP-8141 (frame transactions) and EIP-8130 (keystore
+accounts) now advance as independent models; the lifecycle here is the common ground that
+maps onto each as a peer. Layers 2 and 3 exercise the EIP-8141 binding; the EIP-8130
+mapping is illustrative.
 
 - Spec (draft): https://github.com/ethereum/ERCs/pull/1979
 - Discussion: https://ethereum-magicians.org/t/erc-8403-account-authority-lifecycle/29570
