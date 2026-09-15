@@ -35,8 +35,8 @@ ZERO = [b"\x00" * 32]
 for _ in range(DEPTH):
     ZERO.append(k256(ZERO[-1] + ZERO[-1]))  # setup, not counted
 
-def leaf_value(authority_id: bytes, predicate: bytes) -> bytes:
-    return H(authority_id + predicate)                      # spec L47
+def leaf_value(authority_id, predicate, kind=0, cls=0, expiry=0):
+    return H(authority_id + bytes([kind]) + bytes([cls]) + expiry.to_bytes(8, "big") + H(predicate))
 
 def key_of(authority_id: bytes) -> int:
     return int.from_bytes(k256(b"pos" + authority_id), "big") >> (256 - DEPTH)
@@ -91,7 +91,9 @@ def verify_membership(root: bytes, authority_id: bytes, leafval: bytes, sibs) ->
 
 @dataclass
 class Authority:
-    authority_id: bytes; predicate: bytes; cls: str        # cls: ACT | AMEND
+    authority_id: bytes; predicate: bytes; cls: str; kind: int = 0; expiry: int = 0
+
+def leaf_of_auth(a): return leaf_value(a.authority_id, a.predicate, a.kind, 1 if a.cls == "AMEND" else 0, a.expiry)
 
 @dataclass
 class Account:
@@ -109,14 +111,14 @@ class Account:
 
     def add(self, a: Authority, block):
         self.authorities[a.authority_id] = a
-        self.tree.leaves[a.authority_id] = leaf_value(a.authority_id, a.predicate)
+        self.tree.leaves[a.authority_id] = leaf_of_auth(a)
         self._commit(block)
     def add_bulk(self, auths):                              # measurement fast path
         for a in auths:
             self.authorities[a.authority_id] = a
-            self.tree.leaves[a.authority_id] = leaf_value(a.authority_id, a.predicate)
+            self.tree.leaves[a.authority_id] = leaf_of_auth(a)
     def rotate(self, aid, new_pred, block):
-        old = self.authorities[aid]; self.add(Authority(aid, new_pred, old.cls), block)
+        old = self.authorities[aid]; self.add(Authority(aid, new_pred, old.cls, old.kind, old.expiry), block)
     def revoke(self, aid, block):
         del self.authorities[aid]; del self.tree.leaves[aid]; self._commit(block)
     def referenceable(self, block):
@@ -143,7 +145,7 @@ def authorize(acct, block, tier, authority_id, root_ref, sibs, predicate_pub, wi
         CTR.sloads += 1; root = acct.slot_root
         if root_ref != root: return False
     a = acct.authorities.get(authority_id)
-    lv = leaf_value(authority_id, a.predicate) if a else leaf_value(authority_id, predicate_hint)
+    lv = leaf_of_auth(a) if a else leaf_value(authority_id, predicate_hint)
     if not verify_membership(root, authority_id, lv, sibs): return False
     if not verify_sig(predicate_pub, digest, witness): return False
     return True
@@ -218,10 +220,10 @@ check("S5 rotate binds new key to same slot", pos, "old predicate under new root
 acct, _, _, extra = build_account(b"s6", n_extra=8)
 published = acct.slot_root
 rebuilt = SparseTree()
-for aid, a in acct.authorities.items(): rebuilt.leaves[aid] = leaf_value(aid, a.predicate)
+for aid, a in acct.authorities.items(): rebuilt.leaves[aid] = leaf_of_auth(a)
 pos = (rebuilt.root() == published)
 broken = SparseTree()
-for aid, a in list(acct.authorities.items())[:-1]: broken.leaves[aid] = leaf_value(aid, a.predicate)
+for aid, a in list(acct.authorities.items())[:-1]: broken.leaves[aid] = leaf_of_auth(a)
 red = (broken.root() != published)
 check("S6 recovery rebuilds the exact root from on-chain leaves", pos, "one leaf missing", red)
 
@@ -231,7 +233,7 @@ def sp_of(root, hsr): return k256(b"slotproof|" + root + b"|" + hsr)
 sibs = home.tree.proof(aidA); dg = tx_digest(home.addr, 0, b"c", home.slot_root, aidA); w = sign(privA, dg)
 def mc(sp, expect_root, hsr, acct, aid, sibs, pub, w, dg):
     if sp != sp_of(expect_root, hsr): return False
-    if not verify_membership(expect_root, aid, leaf_value(aid, acct.authorities[aid].predicate), sibs): return False
+    if not verify_membership(expect_root, aid, leaf_of_auth(acct.authorities[aid]), sibs): return False
     return verify_sig(pub, dg, w)
 sp = sp_of(home.slot_root, home_state_root)
 pos = mc(sp, home.slot_root, home_state_root, home, aidA, sibs, pubA, w, dg)

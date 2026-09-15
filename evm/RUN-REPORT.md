@@ -1,4 +1,4 @@
-# ERC-8403 — isolated real-EVM Loop-2 (Foundry / revm)
+# ERC-8403: isolated real-EVM Loop-2 (Foundry / revm)
 
 Isolated from the (offline) public ethrex frame-tx devnet. Engine: Foundry 1.8.1,
 solc 0.8.36, `via_ir` + optimizer. Executes the ERC-8403 authorization logic as a real
@@ -9,7 +9,7 @@ exact mechanism, confirm the check flips).
 ## Scope (honest)
 - IN: the on-chain authorization check (the EIP-8141 VERIFY-frame logic) and the
   ACT/AMEND lifecycle guard, run byte-accurate on real EVM.
-- OUT (consensus layer, needs a live frames client — public devnet is down): the 0x06
+- OUT (consensus layer, needs a live frames client; out of scope here): the 0x06
   frame envelope, `RECENTROOTREFLOAD`, mempool admission, T1 recency-window timing,
   drain-vs-revoke ordering under PBS, cross-client byte-for-byte agreement.
 
@@ -21,7 +21,7 @@ E14 Tier-2 floor rejects a stale root · E15 expiry predicate · E16 threshold k
 E20 chain-domain replay · E22 carried capability bound to the consumer.
 
 ## Measured (real EVM gas, this run)
-- authorize(): 3,153–19,369 gas (avg 10,510) — deep inside MAX_VERIFY_GAS = 100,000.
+- authorize(): 3,153-19,369 gas (avg 10,510), deep inside MAX_VERIFY_GAS = 100,000.
 - verifyMembership: 1,712 · leafOf: 1,254 · changeSet: 352 · selfKill: 38,781 (with SSTORE)
   · setSlotRoot: 66,249 (cold SSTORE).
 

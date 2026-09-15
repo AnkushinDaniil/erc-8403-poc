@@ -25,8 +25,8 @@ ZERO = [b"\x00" * 32]
 for _ in range(DEPTH):
     ZERO.append(k256(ZERO[-1] + ZERO[-1]))
 
-def leaf_value(authority_id: bytes, predicate: bytes) -> bytes:
-    return H(authority_id + predicate)
+def leaf_value(authority_id, predicate, kind=0, cls=0, expiry=0):
+    return H(authority_id + bytes([kind]) + bytes([cls]) + expiry.to_bytes(8, "big") + H(predicate))
 
 def key_of(authority_id: bytes) -> int:
     return int.from_bytes(k256(b"pos" + authority_id), "big") >> (256 - DEPTH)
@@ -81,7 +81,9 @@ def verify_membership(root: bytes, authority_id: bytes, leafval: bytes, sibs) ->
 
 @dataclass
 class Authority:
-    authority_id: bytes; predicate: bytes; cls: str
+    authority_id: bytes; predicate: bytes; cls: str; kind: int = 0; expiry: int = 0
+
+def leaf_of_auth(a): return leaf_value(a.authority_id, a.predicate, a.kind, 1 if a.cls == "AMEND" else 0, a.expiry)
 
 @dataclass
 class Account:
@@ -100,14 +102,14 @@ class Account:
 
     def add(self, a: Authority, block):
         self.authorities[a.authority_id] = a
-        self.tree.leaves[a.authority_id] = leaf_value(a.authority_id, a.predicate)
+        self.tree.leaves[a.authority_id] = leaf_of_auth(a)
         self._commit(block)
     def add_bulk(self, auths):
         for a in auths:
             self.authorities[a.authority_id] = a
-            self.tree.leaves[a.authority_id] = leaf_value(a.authority_id, a.predicate)
+            self.tree.leaves[a.authority_id] = leaf_of_auth(a)
     def rotate(self, aid, new_pred, block):
-        old = self.authorities[aid]; self.add(Authority(aid, new_pred, old.cls), block)
+        old = self.authorities[aid]; self.add(Authority(aid, new_pred, old.cls, old.kind, old.expiry), block)
     def revoke(self, aid, block):
         del self.authorities[aid]; del self.tree.leaves[aid]; self._commit(block)
     def referenceable(self, block):

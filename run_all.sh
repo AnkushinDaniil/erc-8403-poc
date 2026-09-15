@@ -11,6 +11,7 @@ if [ ! -d "$here/.venv" ]; then python3 -m venv "$here/.venv"; fi
 "$here/.venv/bin/pip" install -q -r "$here/poc/requirements.txt" || fail=1
 "$here/.venv/bin/python" "$here/poc/erc8403_poc.py"     || fail=1
 "$here/.venv/bin/python" "$here/poc/erc8403_poc_ext.py" || fail=1
+"$here/.venv/bin/python" "$here/poc/erc8403_recovery.py" || fail=1
 
 echo
 echo "== layer 2: foundry / revm verifier =="

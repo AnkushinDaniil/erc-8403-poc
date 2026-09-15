@@ -8,7 +8,7 @@ reimplemented. Each functional case has a positive control and a RED control
 and reported SEPARATELY as walls, never counted as closed holes.
 """
 from erc8403_model import (
-    k256, H, CTR, ZERO, DEPTH, leaf_value, key_of, SparseTree, verify_membership,
+    k256, H, CTR, ZERO, DEPTH, leaf_value, leaf_of_auth, key_of, SparseTree, verify_membership,
     Authority, Account, sign, verify_sig, keypair, tx_digest, build_account, PRIV_OF,
 )
 
@@ -35,7 +35,7 @@ def authorize(acct, block, tier, authority_id, root_ref, sibs, predicate_pub, wi
         lv = leaf_value(authority_id, carried_pred)     # Tier 1 reads no live state: leaf from carried proof
     else:
         a = acct.authorities.get(authority_id)
-        lv = leaf_value(authority_id, a.predicate) if a else leaf_value(authority_id, hint)
+        lv = leaf_of_auth(a) if a else leaf_value(authority_id, hint)
     if not verify_membership(root, authority_id, lv, sibs): return False
     if not verify_sig(predicate_pub, digest, witness): return False
     return True
@@ -140,7 +140,7 @@ wall("E7-wall denial by self-kill (owner/thief symmetry)",
 acct, (aid_r, priv_r, pub_r), _, _ = build_account(b"e8")
 priv_next, pub_next = keypair(b"e8next")
 acct.authorities[aid_r] = Authority(aid_r, b"RATCHET:" + pub_next + b"|prev:" + pub_r, "ACT")  # thief advanced
-acct.tree.leaves[aid_r] = leaf_value(aid_r, acct.authorities[aid_r].predicate); acct._commit(2)
+acct.tree.leaves[aid_r] = leaf_of_auth(acct.authorities[aid_r]); acct._commit(2)
 def kill_via_prev(acct, aid, prev_priv, prev_pub, block):
     pred = acct.authorities[aid].predicate
     if b"|prev:" + prev_pub not in pred: return False
@@ -178,7 +178,7 @@ priv_g, pub_g = keypair(b"e10guardian"); aid_g = k256(b"e10idG")
 acct.add(Authority(aid_g, b"KEY:" + pub_g, "ACT"), 2)     # guardian survives a lost primary
 published = acct.slot_root
 rebuilt = SparseTree()
-for aid, a in acct.authorities.items(): rebuilt.leaves[aid] = leaf_value(aid, a.predicate)
+for aid, a in acct.authorities.items(): rebuilt.leaves[aid] = leaf_of_auth(a)
 sibs_g = acct.tree.proof(aid_g); dg = tx_digest(acct.addr, 0, b"recover", published, aid_g)
 pos = (rebuilt.root() == published) and authorize(acct, 3, 2, aid_g, published, sibs_g, pub_g, sign(priv_g, dg), dg)
 lost, lost_pub = keypair(b"e10lost")                      # zero surviving authority: no valid witness exists
@@ -188,10 +188,10 @@ check("E10 recovery works with a surviving authority; none => locked out", pos, 
 # E11 recovery from chain vs off-chain leaves lost. WALL for the off-chain MAY path.
 acct, _, _, _ = build_account(b"e11", n_extra=6)
 onchain = SparseTree()
-for aid, a in acct.authorities.items(): onchain.leaves[aid] = leaf_value(aid, a.predicate)
+for aid, a in acct.authorities.items(): onchain.leaves[aid] = leaf_of_auth(a)
 pos = (onchain.root() == acct.slot_root)                  # enumerable on-chain -> rebuild exact
 guess = SparseTree()                                      # off-chain + cache lost -> cannot reconstruct
-for aid, a in list(acct.authorities.items())[:-1]: guess.leaves[aid] = leaf_value(aid, a.predicate)
+for aid, a in list(acct.authorities.items())[:-1]: guess.leaves[aid] = leaf_of_auth(a)
 red = (guess.root() != acct.slot_root)
 check("E11 on-chain leaves rebuild the root; a wrong guess does not", pos, "incomplete leaf set", red)
 wall("E11-wall off-chain leaves with a lost wallet cache",
@@ -280,7 +280,7 @@ home, (aidA, privA, pubA), _, _ = build_account(b"e21")
 def import_ok(finalized): return finalized is True
 sibs = home.tree.proof(aidA); dg = tx_digest(home.addr, 0, b"c", home.slot_root, aidA)
 def mc(finalized): return import_ok(finalized) and verify_membership(
-    home.slot_root, aidA, leaf_value(aidA, home.authorities[aidA].predicate), sibs)
+    home.slot_root, aidA, leaf_of_auth(home.authorities[aidA]), sibs)
 pos = mc(True)
 red = not mc(False)
 check("E21 multichain accepts a finalized home root, rejects unfinalized", pos, "unfinalized/reorgable root", red)

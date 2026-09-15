@@ -1,7 +1,3 @@
-ERC-8403 POC — full scenario report
-generated: Sun Sep 13 09:33:23 AM UTC 2026 UTC
-
-########## CORE SUITE (erc8403_poc.py) ##########
 ================================================================
 ERC-8403 POC  ·  scenario suite (positive + RED control each)
 ================================================================
@@ -45,15 +41,15 @@ MEASUREMENTS  (measured = counted this run; analytic = cost model on counts)
 
 Authority-set size vs proof size and root-recompute cost:
      N  proof_bytes  nondef_sibs  root_hashes  verify_hashes
-     1           64            1          123             65
-     4           96            2          237             65
-    16          192            5          965             65
-    64          192            5         3726             65
-   256          288            8        14351             65
+     1           64            1          123             66
+     4           96            2          237             66
+    16          192            5          965             66
+    64          192            5         3726             66
+   256          288            8        14351             66
 
 Per-tier authorization cost at N=256 (analytic gas on measured op counts):
-  Tier 1: sloads=0 ecrecover=1 keccak=65  analytic_gas~5730  (MAX_VERIFY_GAS=100000)
-  Tier 2: sloads=1 ecrecover=1 keccak=65  analytic_gas~7830  (MAX_VERIFY_GAS=100000)
+  Tier 1: sloads=0 ecrecover=1 keccak=66  analytic_gas~5772  (MAX_VERIFY_GAS=100000)
+  Tier 2: sloads=1 ecrecover=1 keccak=66  analytic_gas~7872  (MAX_VERIFY_GAS=100000)
 
 Verifier cost classes (analytic, ordered by mutable state read):
   CANONICAL  mutable_reads=0    table-priced, no execution
@@ -75,8 +71,6 @@ SCENARIO RESULT: 11/11 passed (positive + RED control both hold)
   ok  S9 self-kill by possession removes the authority
   ok  S10 ACT/AMEND class split
   ok  S11 fail-closed for an unknown authority
-
-########## EXTENDED SUITE (erc8403_poc_ext.py) ##########
 ================================================================
 ERC-8403 POC  ·  EXTENDED suite (edge cases, lifecycle, stolen key, walls)
 ================================================================
@@ -189,3 +183,28 @@ WALLS demonstrated (known limits, NOT holes): 4
   wall E7-wall denial by self-kill (owner/thief symmetry)
   wall E9-wall drain-vs-revoke ordering under PBS
   wall E11-wall off-chain leaves with a lost wallet cache
+================================================================
+ERC-8403 POC  ·  RECOVERY conformance (committed root == semantic set)
+================================================================
+        new leaf AMEND = ecb05a8eefceac6f3f85a57c92954bb02082c9b4dc84d254a311920b31b97f8d
+        new leaf ACT   = d713ec10a59fcad8f76f1aa2f5a1f9f8e4f951da652b73149eda40b373ab895a
+        old leaf AMEND = 0e18ab60b7002be80d255ac6a2719c0a4df46ee458ed9dddf2a0e3f92f392765
+        old leaf ACT   = 0e18ab60b7002be80d255ac6a2719c0a4df46ee458ed9dddf2a0e3f92f392765
+[PASS] REC-1 semantic reconstruction: cls is inside the leaf (same id+predicate, different cls => different leaf)
+        positive: accepts valid
+        RED (old encoding omits cls: AMEND and ACT leaves COLLIDE): rejected as expected
+        no-cls scheme, default ACT  : decisions [False, False] vs original [False, True]; wrong for 1 of 2 authorities
+        no-cls scheme, default AMEND: decisions [True, True] vs original [False, True]; wrong for 1 of 2 authorities
+[PASS] REC-2 cross-form agreement: foreign rebuild from chain leaves + declared scheme reproduces changeSet
+        positive: accepts valid
+        RED (scheme that drops cls flips the decision for at least one authority): rejected as expected
+[WALL] REC-wall interpretation scheme is declared out-of-band
+        demonstrated: rebuild with kind domain {0} recovers nothing = True; with declared {0,1} recovers root and AMEND = True
+        the leaf commits the fields, not their meaning: kind/cls/expiry domains are a convention the verifier and wallet share, not data recoverable from the root.
+
+================================================================
+RECOVERY CONFORMANCE: 2/2 pass ; WALLS/BOUNDARY: 1/1 demonstrated.
+================================================================
+  ok  REC-1 semantic reconstruction: cls is inside the leaf (same id+predicate, different cls => different leaf)
+  ok  REC-2 cross-form agreement: foreign rebuild from chain leaves + declared scheme reproduces changeSet
+  wall REC-wall interpretation scheme is declared out-of-band

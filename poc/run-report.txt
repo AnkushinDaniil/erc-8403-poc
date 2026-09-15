@@ -41,15 +41,15 @@ MEASUREMENTS  (measured = counted this run; analytic = cost model on counts)
 
 Authority-set size vs proof size and root-recompute cost:
      N  proof_bytes  nondef_sibs  root_hashes  verify_hashes
-     1           64            1          123             65
-     4           96            2          237             65
-    16          192            5          965             65
-    64          192            5         3726             65
-   256          288            8        14351             65
+     1           64            1          123             66
+     4           96            2          237             66
+    16          192            5          965             66
+    64          192            5         3726             66
+   256          288            8        14351             66
 
 Per-tier authorization cost at N=256 (analytic gas on measured op counts):
-  Tier 1: sloads=0 ecrecover=1 keccak=65  analytic_gas~5730  (MAX_VERIFY_GAS=100000)
-  Tier 2: sloads=1 ecrecover=1 keccak=65  analytic_gas~7830  (MAX_VERIFY_GAS=100000)
+  Tier 1: sloads=0 ecrecover=1 keccak=66  analytic_gas~5772  (MAX_VERIFY_GAS=100000)
+  Tier 2: sloads=1 ecrecover=1 keccak=66  analytic_gas~7872  (MAX_VERIFY_GAS=100000)
 
 Verifier cost classes (analytic, ordered by mutable state read):
   CANONICAL  mutable_reads=0    table-priced, no execution
